@@ -3,7 +3,6 @@
 export type ActionType =
   | "navigation"
   | "transaction"
-  | "sms"
   | "settings"
   | "authentication"
   | "error"
@@ -108,20 +107,6 @@ export class ActionLogger {
   }
 
   /**
-   * Log an SMS action
-   */
-  logSMS(
-    action: string,
-    status: "pending" | "success" | "failed",
-    phoneNumber?: string,
-    messageId?: string
-  ): LogEntry {
-    return this.log(action, "sms", status, { phoneNumber, messageId }, {
-      category: "communication",
-    })
-  }
-
-  /**
    * Log navigation
    */
   logNavigation(screen: string, previousScreen?: string): LogEntry {
@@ -193,7 +178,6 @@ export class ActionLogger {
     const byType: Record<ActionType, number> = {
       navigation: 0,
       transaction: 0,
-      sms: 0,
       settings: 0,
       authentication: 0,
       error: 0,

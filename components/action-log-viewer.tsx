@@ -7,7 +7,6 @@ import { ChevronDown, Filter, Download, Trash2, RefreshCw } from "lucide-react"
 const ACTION_COLORS: Record<ActionType, string> = {
   navigation: "bg-blue-500",
   transaction: "bg-green-500",
-  sms: "bg-purple-500",
   settings: "bg-gray-500",
   authentication: "bg-orange-500",
   error: "bg-red-500",
@@ -21,7 +20,6 @@ const ACTION_COLORS: Record<ActionType, string> = {
 const ACTION_ICONS: Record<ActionType, string> = {
   navigation: "→",
   transaction: "↔",
-  sms: "✉",
   settings: "⚙",
   authentication: "🔐",
   error: "✕",

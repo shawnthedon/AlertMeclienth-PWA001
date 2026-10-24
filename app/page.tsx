@@ -16,7 +16,6 @@ import { SettingsScreen } from "@/components/settings-screen"
 import { EnhancedProfileScreen } from "@/components/enhanced-profile-screen"
 import { BeneficiaryManagement } from "@/components/beneficiary-management"
 import { ThemeCustomizer } from "@/components/theme-customizer"
-import { SMSTemplateComposer } from "@/components/sms-template-composer"
 import { ReceiptGenerator } from "@/components/receipt-generator"
 import { EnhancedLoansScreen } from "@/components/enhanced-loans-screen"
 import { PayBillsScreen } from "@/components/pay-bills-screen"
@@ -121,8 +120,6 @@ export default function Home() {
         return <BeneficiaryManagement onBack={handleBack} />
       case "themes":
         return <ThemeCustomizer onBack={handleBack} />
-      case "sms-templates":
-        return <SMSTemplateComposer onBack={handleBack} />
       case "receipt-generator":
         return <ReceiptGenerator onBack={handleBack} />
       case "loans":

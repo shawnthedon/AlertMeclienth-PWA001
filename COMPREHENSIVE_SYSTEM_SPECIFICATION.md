@@ -38,7 +38,6 @@
 - **Loan Management**: Loan applications and tracking
 - **Bill Payments**: Pay bills directly from the app
 - **Virtual Cards**: Access to virtual card services
-- **SMS Alerts**: Transaction notifications via Twilio
 - **Offline Support**: Service worker for offline functionality
 
 **Current Status**: Largely functional with identified architectural gaps and security concerns.
@@ -71,8 +70,6 @@
 |-------|-----------|---------|
 | **Runtime** | Node.js (v18+) | JavaScript runtime |
 | **Server Framework** | Express 5.2.1 | HTTP server (referenced in dependencies) |
-| **SMS Service** | Twilio SDK 5.12.0 | Third-party SMS messaging |
-| **vCard Generation** | vcards-js 2.10.0 | Business card format generation |
 
 ### Build & Development
 
@@ -121,9 +118,6 @@
 │                     │                                         │
 │  ┌──────────────────▼──────────────────────────────────┐    │
 │  │  Service Layer                                      │    │
-│  │  ├─ SMS Client (sendTransactionAlert)              │    │
-│  │  ├─ SMS Service (Twilio integration)               │    │
-│  │  ├─ Alert Templates (SMS message generation)       │    │
 │  │  └─ Form Utils (Validation schemas)                │    │
 │  └──────────────────┬──────────────────────────────────┘    │
 │                     │                                         │
@@ -149,16 +143,11 @@
 │                                                                   │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │  API Routes (Next.js App Router)                        │   │
-│  │  ├─ /api/sms/send (Twilio SMS sending)                 │   │
-│  │  ├─ /api/sms/verify (Twilio credential verification)   │   │
-│  │  ├─ /api/sms/business-card (Business card SMS)         │   │
-│  │  ├─ /api/vcard (vCard generation for contacts)         │   │
 │  │  └─ /api/sw (Service worker management)                │   │
 │  └──────────────────┬──────────────────────────────────────┘   │
 │                     │                                             │
 │  ┌──────────────────▼──────────────────────────────────────┐   │
 │  │  Third-Party Integrations                               │   │
-│  │  ├─ Twilio (SMS/MMS messaging)                         │   │
 │  │  └─ Environment Variables (Secrets management)         │   │
 │  └──────────────────┬──────────────────────────────────────┘   │
 │                     │                                             │
@@ -174,7 +163,6 @@
 ┌─────────────────────▼──────────────────────────────────────────┐
 │           EXTERNAL SERVICES & INFRASTRUCTURE                   │
 ├────────────────────────────────────────────────────────────────┤
-│  ├─ Twilio (SMS/MMS Provider)                                 │
 │  ├─ Environment Variables (.env.local, .env.production)       │
 │  └─ CDN (Vercel default)                                       │
 └────────────────────────────────────────────────────────────────┘
@@ -279,12 +267,9 @@ User clicks "Send Money"
   │   │   ├─ Generate transaction ID & reference
   │   │   ├─ Update sender balance (debit)
   │   │   ├─ Add notification
-  │   │   └─ Trigger SMS alerts (if enabled)
   │   │
-  │   ├─► Send SMS Alerts
   │   │   ├─ Debit alert to sender
   │   │   ├─ Credit alert to recipient (if phone available)
-  │   │   └─ Use Twilio SMS API
   │   │
   │   ▼
   └─► Transaction Success Screen
@@ -375,14 +360,12 @@ User navigates to Settings
   ├─► App Settings
   │   ├─ Theme selection (light/dark/auto)
   │   ├─ Notification toggle
-  │   ├─ SMS Alerts toggle
   │   ├─ Biometric login toggle (future)
   │   ├─ Language selection (future)
   │   │
   │   ▼
   ├─► Advanced Features
   │   ├─ Theme customizer (custom colors, fonts)
-  │   ├─ SMS Template composer
   │   ├─ Receipt generator
   │   ├─ Export data (JSON)
   │   ├─ Import data from backup
@@ -590,7 +573,6 @@ Login Phase:
 {
   theme: string                    // "default", "dark", "light"
   notifications: boolean           // Enable/disable app notifications
-  smsAlerts: boolean              // Enable/disable SMS alerts
   biometricLogin: boolean         // Enable/disable biometric login
   language: string                // Language code (e.g., "en", "fr")
 }
@@ -763,23 +745,13 @@ useEffect(() => {
 
 ---
 
-## THIRD-PARTY INTEGRATIONS
+## ALERT TEMPLATES & LOCAL NOTIFICATIONS
 
-### Twilio SMS Service
+Transaction alert text is generated locally by `lib/alert-templates.ts` and written to the
+notification log together with the transaction. The application does not integrate with any
+external messaging provider.
 
-#### Configuration
-```
-Environment Variables Required:
-├─ TWILIO_ACCOUNT_SID      (e.g., ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx)
-├─ TWILIO_AUTH_TOKEN       (Authentication token)
-└─ TWILIO_PHONE_NUMBER     (e.g., +12203008040)
-
-Storage Location:
-├─ Development: .env.local (Git ignored)
-└─ Production: Vercel Environment Variables (Dashboard)
-```
-
-#### SMS Alert Types
+#### Alert Template Types
 
 | Type | Trigger | Template |
 |------|---------|----------|
@@ -788,101 +760,10 @@ Storage Location:
 | **Balance** | Balance inquiry | `ECOBANK ALERT: Your account balance is NGN{balance}. Time: {time}` |
 | **Low Balance** | Low balance warning | `ECOBANK ALERT: Low balance warning. Your account balance is NGN{balance}. Please fund your account.` |
 
-#### SMS Flow
+#### Business Card Sharing
 
-```
-User initiates transaction
-        │
-        ▼
-Amount, recipient, fee calculated
-        │
-        ├─► Check: settings.smsAlerts === true?
-        │
-        ├─YES─► Format SMS messages (debit & credit alerts)
-        │        │
-        │        ▼
-        │        Call Twilio API
-        │        ├─ POST /api/sms/send
-        │        ├─ Body: { to, message, type }
-        │        └─ Retry up to 3 times on failure
-        │
-        └─NO──► Skip SMS alerts
-```
-
-#### Twilio API Endpoints
-
-**1. Send SMS**
-```
-POST /api/sms/send
-Content-Type: application/json
-
-Request:
-{
-  "to": "+234 801 234 5678",
-  "message": "ECOBANK ALERT: ...",
-  "type": "debit" | "credit" | "balance" | "notification"
-}
-
-Response:
-{
-  "success": true,
-  "messageId": "SM1234567890abcdef1234567890abcdef",
-  "status": "queued" | "sent" | "failed",
-  "type": "debit"
-}
-```
-
-**2. Verify Twilio Credentials**
-```
-GET /api/sms/verify
-
-Response:
-{
-  "success": true,
-  "accountSid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "friendlyName": "My Twilio Account",
-  "status": "active"
-}
-```
-
-**3. Generate Business Card (vCard)**
-```
-GET /api/vcard?bank=Ecobank&email=user@bank.com&phone=+234801234567
-
-Response:
-BEGIN:VCARD
-VERSION:3.0
-FN:Ecobank
-TITLE:Banking Partner
-EMAIL:user@bank.com
-TEL:+234801234567
-ORG:Ecobank
-NOTE:Business card shared via Ecobank Mobile App
-END:VCARD
-```
-
-#### Phone Number Formatting
-
-Nigerian phone number formats supported:
-
-```
-Input Format              → Output Format (E.164)
-+234 801 234 5678       → +2348012345678
-234 801 234 5678        → +2348012345678
-0801 234 5678           → +2348012345678
-2348012345678           → +2348012345678
-+2348012345678          → +2348012345678
-```
-
-#### Error Handling
-
-| Error | Status | Handling |
-|-------|--------|----------|
-| Missing required fields | 400 | Return error, don't retry |
-| Twilio credentials not configured | 500 | Log error, return error |
-| Invalid phone number | N/A | Format and retry |
-| Network timeout | N/A | Retry up to 3 times (1 sec between) |
-| Twilio API error | 500 | Log error, return error |
+Business cards are generated as vCard text in the browser (`components/share-details-modal.tsx`)
+and handed to the device share sheet or clipboard. No server route is involved.
 
 ---
 
@@ -1042,7 +923,6 @@ Root (app/page.tsx)
 ├─ SettingsScreen
 │  ├─ Theme selector
 │  ├─ Notification toggles
-│  ├─ SMS alerts toggle
 │  ├─ Biometric login toggle
 │  ├─ Language selector
 │  ├─ Data export/import
@@ -1055,7 +935,6 @@ Root (app/page.tsx)
 │  ├─ Save/Reset buttons
 │  └─ Back button
 │
-├─ SMSTemplateComposer
 │  ├─ Template selector
 │  ├─ Message editor
 │  ├─ Variable insertion
@@ -1195,7 +1074,6 @@ dashboard (Hub)
   │
   ├──► settings
   │     ├──► themes
-  │     └──► sms-templates
   │
   ├──► profile
   │
@@ -1232,133 +1110,8 @@ Component renders with passed props
 
 ### Public API Routes
 
-#### 1. SMS Sending
-```
-POST /api/sms/send
+#### Service Worker
 
-Purpose: Send transaction alerts and notifications via Twilio
-Requires: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER
-
-Request Headers:
-Content-Type: application/json
-
-Request Body:
-{
-  "to": "+234801234567",              // Required: recipient phone number
-  "message": "ECOBANK ALERT: ...",   // Required: message content
-  "type": "debit|credit|balance|notification"  // Optional
-}
-
-Response (Success):
-{
-  "success": true,
-  "messageId": "SM1234567890abcdef",
-  "status": "queued",
-  "type": "debit"
-}
-
-Response (Error):
-{
-  "success": false,
-  "error": "Missing required fields: to, message"  // Error description
-}
-
-Error Codes:
-- 400: Bad Request (missing fields)
-- 500: Twilio not configured or API error
-```
-
-#### 2. Twilio Verification
-```
-GET /api/sms/verify
-
-Purpose: Verify Twilio credentials are configured correctly
-Requires: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN
-
-Response (Success):
-{
-  "success": true,
-  "accountSid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "friendlyName": "My Twilio Account",
-  "status": "active"
-}
-
-Response (Error):
-{
-  "success": false,
-  "error": "Twilio not configured"
-}
-
-Error Codes:
-- 500: Twilio not configured or credential verification failed
-```
-
-#### 3. Business Card SMS
-```
-POST /api/sms/business-card
-
-Purpose: Send business card (vCard) via SMS/MMS
-Requires: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER
-
-Request Body:
-{
-  "to": "+234801234567",
-  "sender": "John Olayemi",
-  "accountNumber": "0099348976",
-  "bank": "Ecobank",
-  "phone": "+234801234567",
-  "email": "john@email.com"
-}
-
-Response (Success):
-{
-  "success": true,
-  "messageId": "MM1234567890abcdef"
-}
-
-Response (Error):
-{
-  "success": false,
-  "error": "Business Card SMS Error: ..."
-}
-```
-
-#### 4. vCard Generation
-```
-GET /api/vcard?bank=Ecobank&email=user@bank.com&phone=+234801234567
-
-Purpose: Generate vCard (contact/business card file)
-Format: RFC 6350 (vCard 3.0)
-
-Query Parameters:
-- bank (optional): Bank/company name (default: "Ecobank")
-- email (optional): Email address
-- phone (optional): Phone number
-
-Response (Success):
-Content-Type: text/vcard; charset=utf-8
-Content-Disposition: attachment; filename="Ecobank_businesscard.vcf"
-
-BEGIN:VCARD
-VERSION:3.0
-FN:Ecobank
-TITLE:Banking Partner
-EMAIL:user@bank.com
-TEL:+234801234567
-ORG:Ecobank
-NOTE:Business card shared via Ecobank Mobile App
-END:VCARD
-
-Response (Error):
-{
-  "error": "Failed to generate vCard"
-}
-
-Error Codes:
-- 500: vCard generation failed
-```
-
-#### 5. Service Worker
 ```
 GET /api/sw
 
@@ -1375,11 +1128,6 @@ All errors return JSON response with structure:
   "error": "Descriptive error message"
 }
 ```
-
-Retry Logic (implemented in SMSService):
-- Retries up to 3 times
-- 1 second delay between retries
-- Only retries on network errors, not validation errors
 
 ---
 
@@ -1662,7 +1410,6 @@ Fetch Event:
 **NOT Available Offline**:
 - ❌ Send money (requires backend verification)
 - ❌ Load transactions (no sync)
-- ❌ SMS alerts (requires Twilio)
 - ❌ Any API calls
 
 #### 4. Installation & Standalone Mode
@@ -1753,7 +1500,6 @@ export const viewport: Viewport = {
 | **DetailedReceiptScreen** | Full receipt with QR code | Local | transferData prop |
 | **UpgradeLimitScreen** | Upgrade account limits | Local | DataStore.userData |
 | **CurrencyScreen** | Currency conversion | Local | Mock rates |
-| **SMSTemplateComposer** | Create SMS templates | Local | DataStore.settings |
 | **ReceiptGenerator** | Generate transaction receipt | Local | DataStore.transactions |
 | **LoanRequirementsChecklist** | Show loan requirements | Local | Mock requirements |
 
@@ -1897,25 +1643,6 @@ Component Mount
 - **Root Cause**: Client-side only authentication
 - **Fix Priority**: P1 - Add rate limiting
 
-#### 5. **SMS Service Exposed to XSS**
-- **Location**: SMS API routes
-- **Severity**: HIGH
-- **Description**: User input not properly validated before SMS sending
-- **Impact**: SMS injection attacks possible
-- **Evidence**:
-  ```typescript
-  // From /api/sms/send/route.ts
-  const { to, message, type } = body
-  // No message sanitization before sending to Twilio
-  const twilioMessage = await client.messages.create({
-    body: message,  // Could contain injection payload
-    from: twilioPhoneNumber,
-    to: formattedPhone,
-  })
-  ```
-- **Root Cause**: No input validation layer
-- **Fix Priority**: P1 - Sanitize SMS messages
-
 #### 6. **Build Configuration Issues**
 - **Location**: Build process
 - **Severity**: HIGH
@@ -1983,19 +1710,16 @@ Component Mount
 - **Fix Priority**: P2 - Implement single storage with reference
 
 #### 10. **No Input Validation on Phone Numbers**
-- **Location**: SMS client, phone formatting
 - **Severity**: MEDIUM
 - **Description**: Phone number validation insufficient
 - **Evidence**:
   ```typescript
-  // From sms-service.ts
   validatePhoneNumber(phone: string): boolean {
     const phoneRegex = /^(\+234|234|0)?[789][01]\d{8}$/
     // Regex is fragile, only handles Nigerian numbers
     return phoneRegex.test(phone.replace(/\s+/g, ""))
   }
   ```
-- **Impact**: SMS sent to invalid numbers, failed transactions
 - **Root Cause**: Limited regex, no international support
 - **Fix Priority**: P2 - Use phone validation library
 
@@ -2073,7 +1797,6 @@ Component Mount
 - **Severity**: LOW
 - **Description**: No loading indicators on async operations
 - **Impact**: Users unsure if app is working
-- **Evidence**: SMS sending has no loading indicator
 - **Root Cause**: Async operations not tracked
 - **Fix Priority**: P3 - Add loading states
 
@@ -2180,7 +1903,6 @@ Component Mount
 
 3. **Fix Critical Security Issues**
    - [ ] Implement server-side authentication
-   - [ ] Use environment variables for Twilio credentials (already done, verify)
    - [ ] Remove PIN from client storage
    - [ ] Add CORS headers to API routes
    - [ ] Add Content Security Policy headers
@@ -2312,7 +2034,6 @@ T   o
 - ✅ UI/UX: Modern, responsive, well-designed
 - ✅ PWA: Offline support, installable, fullscreen mode
 - ✅ State Management: Singleton DataStore with persistence
-- ✅ SMS Integration: Twilio properly configured
 - ❌ Authentication: No backend, credentials in plaintext
 - ❌ Data Persistence: Mock data only, no real database
 - ❌ Error Handling: No error boundaries or proper error handling

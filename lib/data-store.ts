@@ -1,11 +1,8 @@
 "use client"
 
-import { generateDebitAlert, generateCreditAlert } from "./alert-templates"
-import { sendTransactionAlert } from "./sms-client"
-import { SMSService } from "./sms-service"
+import { generateDebitAlert } from "./alert-templates"
 import { StorageManager } from "./storage-manager"
 import { formatCurrency } from "@/lib/form-utils"
-import { GatewayConfig } from "@/lib/sms-gateways/types"
 
 export interface Transaction {
   id: string
@@ -61,8 +58,8 @@ export interface Notification {
 export interface NotificationLog {
   id: string
   transactionId: string
-  type: "sms" | "email" | "push"
-  status: "pending" | "sent" | "failed" | "delivered"
+  type: "alert" | "email" | "push"
+  status: "logged" | "pending" | "sent" | "failed" | "delivered"
   recipient: string
   templateUsed: string
   timestamp: string
@@ -94,7 +91,6 @@ export interface LoanApplication {
 export interface AppSettings {
   theme: string
   notifications: boolean
-  smsAlerts: boolean
   biometricLogin: boolean
   language: string
 }
@@ -106,7 +102,6 @@ interface AppState {
   notifications: Notification[]
   loanApplications: LoanApplication[]
   settings: AppSettings
-  smsGatewayConfigs: GatewayConfig[]
   lastSynced: string
   version: number
 }
@@ -559,51 +554,9 @@ class DataStore {
       settings: {
         theme: "default",
         notifications: true,
-        smsAlerts: true,
         biometricLogin: false,
         language: "en",
       },
-      smsGatewayConfigs: [
-        {
-          name: "infobip",
-          enabled: false,
-          priority: 1,
-          credentials: {
-            apiKey: "",
-            username: "",
-            baseUrl: "",
-          },
-        },
-        {
-          name: "smsglobal",
-          enabled: false,
-          priority: 2,
-          credentials: {
-            apiKey: "",
-            endpoint: "",
-          },
-        },
-        {
-          name: "easysendsms",
-          enabled: false,
-          priority: 3,
-          credentials: {
-            apiKey: "",
-            username: "",
-            endpoint: "",
-          },
-        },
-        {
-          name: "telnyx",
-          enabled: false,
-          priority: 4,
-          credentials: {
-            apiKey: "",
-            messagingProfileId: "",
-            endpoint: "",
-          },
-        },
-      ],
       lastSynced: new Date().toISOString(),
       version: this.VERSION,
     }
@@ -773,14 +726,21 @@ class DataStore {
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     }
     
+    const alertMessage = generateDebitAlert(
+      newTransaction.amount,
+      newTransaction.recipient || "Recipient",
+      this.state.userData.balance,
+      reference,
+    )
+
     this.logNotification({
       transactionId: id,
-      type: "sms",
-      status: "pending",
+      type: "alert",
+      status: "logged",
       recipient: newTransaction.recipient || "",
       templateUsed: newTransaction.recipientBank || "default",
       timestamp: new Date().toISOString(),
-      message: `Transaction alert for ${newTransaction.type}`,
+      message: alertMessage,
     })
 
     // Ensure amount and fee are numbers rounded to 2 decimals
@@ -796,58 +756,6 @@ class DataStore {
     } else {
       const delta = newTransaction.amount
       this.state.userData.balance = Number((this.state.userData.balance + delta).toFixed(2))
-    }
-
-    // Send SMS notifications if enabled
-    if (this.state.settings.smsAlerts) {
-      if (newTransaction.isDebit && newTransaction.recipient) {
-        const debitMessage = generateDebitAlert(
-          newTransaction.amount,
-          newTransaction.recipient,
-          this.state.userData.balance,
-          reference,
-        )
-
-        await sendTransactionAlert({
-          to: this.state.userData.phone,
-          message: debitMessage,
-          type: "debit",
-        })
-
-        // Send credit alert to recipient if phone available
-        const beneficiary = this.state.beneficiaries.find((b) => b.name === newTransaction.recipient)
-        if (beneficiary?.phone) {
-          const creditMessage = generateCreditAlert(
-            newTransaction.amount,
-            this.state.userData.name,
-            0, // We don't know recipient's balance
-            reference,
-          )
-
-          await sendTransactionAlert({
-            to: beneficiary.phone,
-            message: creditMessage,
-            type: "credit",
-          })
-        }
-      }
-      
-      if (newTransaction.isDebit && newTransaction.recipientBank) {
-        await SMSService.sendDynamicTransactionAlert(newTransaction.recipientBank, {
-          amount: newTransaction.amount,
-          recipient: newTransaction.recipient || "",
-          sender: this.state.userData.name,
-          balance: this.state.userData.balance,
-          reference: reference,
-          beneficiaryName: newTransaction.recipient || "",
-          accountNumber: newTransaction.recipientAccount || "",
-          description: newTransaction.description || "Transfer",
-          transactionType: newTransaction.isDebit ? "Debit" : "Credit",
-        }, {
-          includeRegulatoryDisclaimer: true,
-          includeOptOut: true
-        })
-      }
     }
 
     // Add in-app notification
@@ -1116,25 +1024,7 @@ class DataStore {
     }
   }
 
-  // SMS Gateway configuration methods
-  getSMSGatewayConfigs(): GatewayConfig[] {
-    return [...this.state.smsGatewayConfigs]
-  }
 
-  setSMSGatewayConfigs(configs: GatewayConfig[]): void {
-    this.state.smsGatewayConfigs = configs.map((c) => ({ ...c }))
-    this.notify()
-  }
-
-  updateSMSGatewayConfig(gatewayName: string, updates: Partial<GatewayConfig>): boolean {
-    const config = this.state.smsGatewayConfigs.find((c) => c.name === gatewayName)
-    if (config) {
-      Object.assign(config, updates)
-      this.notify()
-      return true
-    }
-    return false
-  }
 }
 
 export const dataStore = DataStore.getInstance()

@@ -43,7 +43,6 @@ Staging Environment:
 ├─ Express server on EC2/Cloud Run
 ├─ PostgreSQL staging database
 ├─ Redis for caching
-└─ Twilio sandbox account
 
 Production Environment:
 ├─ Vercel/Netlify for frontend CDN
@@ -258,7 +257,6 @@ GET /api/users/balance
   └─ Get current balance
 
 PUT /api/users/settings
-  └─ Update settings (notifications, SMS alerts, theme)
 
 POST /api/users/change-pin
   ├─ Verify old PIN
@@ -275,7 +273,6 @@ POST /api/transactions/transfer
   ├─ Debit sender
   ├─ Credit recipient
   ├─ Store transaction
-  ├─ Send SMS alerts (if enabled)
   └─ Return transaction ID & reference
 
 GET /api/transactions
@@ -370,15 +367,6 @@ async function processTransfer(request) {
     return transaction[0]
   })
   
-  // 9. Send SMS alerts (outside transaction)
-  if (sender.sms_alerts) {
-    await smsService.sendDebitAlert({
-      phone: sender.phone,
-      amount,
-      recipient: request.recipientName,
-      balance: sender.balance - totalDebit,
-      reference: txn.reference
-    })
   }
   
   return txn
@@ -708,7 +696,6 @@ Utils:
 └─ type conversions
 
 Services:
-├─ sms-service.ts
 ├─ alert-templates.ts
 └─ authentication flow
 
@@ -739,7 +726,6 @@ Flow 2: Money Transfer
 ├─ Receipt generated ✓
 ├─ Transaction in history ✓
 ├─ Beneficiary saved (if requested) ✓
-└─ SMS sent (if enabled) ✓
 
 Flow 3: Beneficiary Management
 ├─ Add new beneficiary ✓
@@ -876,7 +862,6 @@ Key Metrics:
 ├─ System CPU/Memory
 ├─ Database query times
 ├─ Cache hit rate
-└─ SMS delivery rate
 ```
 
 #### 4.3 Deployment Pipeline (1 week)

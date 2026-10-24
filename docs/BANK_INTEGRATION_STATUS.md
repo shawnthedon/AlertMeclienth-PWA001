@@ -25,7 +25,6 @@ This document tracks the integration status of Nigerian banks and digital wallet
 | Bank Service Status | `bank-service-status.tsx` | ✓ NIGERIAN_BANKS | ✓ Complete | Service status display |
 | Enhanced Bank Service Status | `enhanced-bank-service-status.tsx` | ✓ NIGERIAN_BANKS | ✓ Complete | Enhanced monitoring |
 | Share Details Modal | `share-details-modal.tsx` | ✓ NIGERIAN_BANKS | ✓ Complete | Business card sharing |
-| SMS Template Composer | `sms-template-composer.tsx` | ✓ NIGERIAN_BANKS | ✓ Complete | SMS template creation |
 
 **Overall Status: ✓ ALL COMPONENTS INTEGRATED**
 

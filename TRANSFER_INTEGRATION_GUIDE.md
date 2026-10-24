@@ -133,7 +133,6 @@ TransferRouter (type-specific form)
     ↓
 PinConfirmation
     ↓
-TransferProcessingScreen (with SMS retry)
     ↓
 TransactionSuccess
 ```
@@ -181,90 +180,6 @@ TransactionSuccess
 
 ---
 
-## SMS Alert Configuration
-
-The transfer processing now includes automatic SMS alerts with retry logic:
-
-```typescript
-// In transfer-processing-screen.tsx
-const smsResult = await sendSMSWithRetry(
-  userData.phone,
-  message,
-  async (phone, msg) => {
-    try {
-      await SMSService.sendAlert(phone, msg)
-      return { success: true, messageId: id }
-    } catch (err) {
-      return { success: false, error: String(err) }
-    }
-  },
-  {
-    maxRetries: 3,
-    initialDelayMs: 1000,
-    maxDelayMs: 10000,
-    backoffMultiplier: 2
-  }
-)
-
-// SMS still fails gracefully - transaction completes even if SMS fails
-if (!smsResult.success && smsResult.error) {
-  logSMSError(smsResult.error, { transactionId: id })
-  console.warn("SMS alert failed but transaction completed")
-}
-```
-
----
-
-## Environment Variables Needed
-
-Make sure you have SMS configuration in `.env`:
-
-```env
-# SMS Service
-SMS_PROVIDER=twilio|nexmo|custom
-SMS_API_KEY=your_api_key
-SMS_SENDER_ID=YourBankName
-
-# Optional: Logging
-LOG_LEVEL=debug|info|warn|error
-```
-
----
-
-## Error Handling Example
-
-```typescript
-import { categorizeSMSError, formatSMSErrorForUser, logSMSError } from "@/lib/sms-error-handler"
-
-try {
-  const result = await sendSMSWithRetry(phone, message, sendFunction)
-  
-  if (!result.success) {
-    const error = result.error!
-    
-    // Log for debugging
-    logSMSError(error, { context: "transaction" })
-    
-    // Show user-friendly message
-    const userMessage = formatSMSErrorForUser(error)
-    toast({
-      title: "SMS Alert Failed",
-      description: userMessage,
-      variant: "warning"
-    })
-    
-    // If retryable, suggest retry
-    if (error.retryable) {
-      console.log("You can retry this operation")
-    }
-  }
-} catch (err) {
-  console.error("Unexpected error:", err)
-}
-```
-
----
-
 ## Testing Your Integration
 
 ### 1. Test Domestic Transfer:
@@ -276,7 +191,6 @@ try {
 - Amount validation works
 - Daily limit ₦5M enforced
 - Beneficiary lookup works
-- SMS alert sent with retry
 ```
 
 ### 2. Test Mobile Money:
@@ -287,7 +201,6 @@ try {
 - Provider selection works
 - Phone normalization (+234 format)
 - Daily limit ₦1M enforced
-- SMS alert sent with retry
 ```
 
 ### 3. Test International:
@@ -298,12 +211,10 @@ try {
 - SWIFT/IBAN validation works
 - Purpose of transfer required
 - Daily limit ₦100K enforced
-- SMS alert sent with retry
 ```
 
 ### 4. Test Error Handling:
 ```bash
-# Simulate SMS failure (mock sendSMSWithRetry)
 # Verify:
 - Error retry happens automatically
 - Transaction still completes
@@ -320,7 +231,6 @@ The old components still work if you don't use the new TransferRouter:
 - ✅ `TransferOptions` - unchanged
 - ✅ `NewBeneficiary` - still available
 - ✅ `TransferScreen` - still available
-- ⚠️ Enhanced `TransferProcessingScreen` - now includes SMS
 
 ---
 
@@ -386,9 +296,6 @@ const handleSubmit = async (data: any) => {
 ### Issue: "Form not validating"
 **Solution**: Ensure zod schema is properly imported and methods.register() is used.
 
-### Issue: "SMS not sending"
-**Solution**: Check SMS service configuration and phone number format.
-
 ### Issue: "Daily limit not enforced"
 **Solution**: Verify dataStore.getTransactions() is being called to check daily total.
 
@@ -420,12 +327,10 @@ npm run test:coverage
 ### Phase 1 (Immediate):
 - [x] Deploy new transfer forms
 - [x] Deploy transfer router
-- [x] Deploy SMS error handler
 - [x] Keep old components for fallback
 
 ### Phase 2 (1 week):
 - Monitor error rates
-- Verify SMS delivery success rate
 - Collect user feedback
 
 ### Phase 3 (2 weeks):
@@ -449,7 +354,6 @@ For issues or questions:
 
 - **v1.0.0** - Initial release (Jan 28, 2026)
   - 5 transfer type forms
-  - SMS error handling with retry
   - Comprehensive validation
   - Full test coverage
 

@@ -158,14 +158,11 @@ All forms follow consistent labeling:
 
 ## Error Handling
 
-### SMS Error Handler (`sms-error-handler.ts`)
-
 **Error Types Categorized**:
 1. `NETWORK_ERROR` - Retryable, user message about internet
 2. `INVALID_PHONE` - Non-retryable, invalid format
 3. `THROTTLE_LIMIT` - Retryable, rate limit exceeded
 4. `INVALID_RECIPIENT` - Non-retryable, recipient verification failed
-5. `DELIVERY_FAILED` - Retryable, SMS delivery failed
 6. `TIMEOUT` - Retryable, request timeout
 7. `UNKNOWN` - Retryable, unexpected error
 
@@ -260,7 +257,6 @@ await sendSMSWithRetry(
 ## Unit Tests
 
 ### Test Files:
-1. **`__tests__/sms-error-handler.test.ts`**
    - Error categorization
    - Retry delay calculation
    - Error formatting for users
@@ -303,13 +299,10 @@ components/
 │   ├── international-transfer-form.tsx
 │   ├── standing-order-form.tsx
 │   └── visa-direct-transfer-form.tsx
-├── transfer-processing-screen.tsx (Enhanced with SMS)
 └── transfer-options.tsx (Entry point)
 
 lib/
 ├── form-utils.ts (Base validation schemas)
-├── sms-error-handler.ts (SMS error handling)
-├── sms-service.ts (SMS sending logic)
 └── data-store.ts (Transaction storage)
 ```
 
@@ -330,7 +323,6 @@ Routes based on transfer type to appropriate form:
 ### TransferProcessingScreen:
 - Validates PIN
 - Processes payment
-- Sends SMS alert with retry logic
 - Logs transaction
 - Navigates to success screen
 
@@ -356,9 +348,6 @@ All form labels now use consistent class: `"text-sm font-medium text-gray-700 mb
 ### Validation Not Working:
 Check that zod schema is properly imported and methods.register() is used.
 
-### SMS Alerts Not Sent:
-Check SMS error handler logs and ensure phone number is valid.
-
 ### Transfer Not Completing:
 Verify daily limits haven't been exceeded and account has sufficient balance.
 
@@ -371,7 +360,6 @@ Verify daily limits haven't been exceeded and account has sufficient balance.
 - [ ] Test phone number normalization
 - [ ] Test date range validation for standing orders
 - [ ] Test card validation with Luhn algorithm
-- [ ] Test SMS error handling and retry logic
 - [ ] Test beneficiary saving
 - [ ] Test transaction logging
 - [ ] Test error message display

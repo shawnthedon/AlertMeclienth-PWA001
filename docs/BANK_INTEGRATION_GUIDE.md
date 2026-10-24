@@ -148,15 +148,8 @@ This guide explains how the Nigerian banks and digital wallets system is integra
 
 #### `components/share-details-modal.tsx`
 - **Uses:** `NIGERIAN_BANKS`
-- **Purpose:** Share account details via SMS
+- **Purpose:** Share business card details through the device share sheet
 - **Implementation:** Select bank for business card
-
-### 5. SMS Notifications
-
-#### `components/sms-template-composer.tsx`
-- **Uses:** `NIGERIAN_BANKS`
-- **Purpose:** SMS template creation
-- **Implementation:** Bank references in templates
 
 ---
 

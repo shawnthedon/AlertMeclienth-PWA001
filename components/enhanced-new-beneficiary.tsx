@@ -140,7 +140,7 @@ export function EnhancedNewBeneficiary({ onBack, onContinue }: EnhancedNewBenefi
     if (PHONE_BASED_WALLETS.includes(formData.bank) && !formData.beneficiaryTelephone) {
       toast({
         title: "Beneficiary Telephone Required",
-        description: "Please provide the beneficiary telephone number for SMS alert",
+        description: "Please provide the beneficiary telephone number for transaction alerts",
         variant: "destructive",
       })
       return
@@ -309,7 +309,7 @@ export function EnhancedNewBeneficiary({ onBack, onContinue }: EnhancedNewBenefi
           <div className="space-y-3">
             <label className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-[#004A9F]" />
-              Beneficiary Telephone (for SMS alert)
+              Beneficiary Telephone (for transaction alerts)
             </label>
             <Input
               placeholder="Enter beneficiary telephone number"

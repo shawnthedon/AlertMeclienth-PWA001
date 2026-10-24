@@ -153,7 +153,6 @@ After each transaction, users see a detailed receipt with:
 - Share Receipt
   - WhatsApp
   - Email
-  - SMS
   - More options
 - Copy Receipt Number
 
@@ -226,7 +225,6 @@ When clicking back from receipt:
 1. Dashboard → More → Mobile Money
 2. Select MTN or Airtel Money
 3. Enter recipient phone and amount
-4. Verify SMS is sent
 5. Check receipt for mobile money details
 
 ---
@@ -247,13 +245,6 @@ From the main dashboard:
 ---
 
 ## Settings & Customization
-
-### SMS Gateway Settings
-- Access via Settings → SMS Gateways
-- Configure 4 providers (Infobip, SMSGlobal, EasySendSMS, Telnyx)
-- Set priority order
-- Test SMS delivery
-- Enable/disable gateways
 
 ### Account Settings
 - Update profile
@@ -276,7 +267,6 @@ From the main dashboard:
 1. **Pre-filled Login**: Account number and PIN are pre-filled for convenience
 2. **Sample Data**: All beneficiaries and transactions are realistic sample data
 3. **No Real Transactions**: Transfers are simulated; no actual money moves
-4. **SMS Simulation**: SMS alerts show as "pending" then "sent" automatically
 5. **Receipt Persistence**: All transaction info is preserved in local storage
 6. **Network Status**: Green/red dot on header shows mock server connection
 

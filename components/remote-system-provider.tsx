@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import { remoteSystem } from "@/lib/remote-system";
 import { dataStore } from "@/lib/data-store";
-import { AlertToastProvider } from "./alert-toast-provider";
 
 interface RemoteSystemProviderProps {
   children: React.ReactNode;
@@ -80,9 +79,5 @@ export default function RemoteSystemProvider({ children }: RemoteSystemProviderP
     };
   }, []);
 
-  return (
-    <AlertToastProvider>
-      {children}
-    </AlertToastProvider>
-  );
+  return <>{children}</>;
 }

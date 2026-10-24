@@ -165,7 +165,6 @@ Utility classes:
 1. User confirms transfer → PinConfirmation screen
 2. User submits PIN → TransferProcessingScreen appears
 3. 3-step flow animates (3 seconds)
-4. SMS alerts send in background (concurrent)
 5. Auto-navigate to TransactionSuccessScreen
 6. No delay, no blank screens
 

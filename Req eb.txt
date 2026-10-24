@@ -34,7 +34,6 @@ FR-SEC: Security and Verification
 
 FR-SEC-01 (Transaction PIN): The system shall require the user to enter a correct 4-digit Transaction PIN to authorize all monetary transactions (transfers, airtime purchases, bill payments).
 
-
 FR-SEC-02 (Input Validation): The system shall validate and sanitize all user-provided input on both the client-side and server-side to prevent security vulnerabilities like XSS and SQL injection.
 
 FR-SEC-03 (Account Number Masking): Within transaction histories and beneficiary lists, the system shall mask account numbers for privacy, displaying only the first three and last four digits (e.g., 123***1234).
@@ -45,11 +44,7 @@ FR-NOTIF: Notification System
 
 FR-NOTIF-01 (Real-time Alerts): The system shall generate automatic in-app notifications and push notifications for all transaction events (e.g., successful debit, successful credit, failed transaction).
 
-FR-NOTIF-02 (SMS Alerts): The system shall send an SMS notification to both the sender and the recipient upon the successful completion of a money transfer.
-
 FR-NOTIF-03 (Notification History): The system shall maintain a dedicated "Notifications" screen where users can view a history of all past in-app alerts.
-
-FR-NOTIF-04 (Confirmation Details): All transaction confirmation notifications (in-app and SMS) shall include a unique transaction reference number.
 
 FR-PAGES: UI Pages and Screens
 

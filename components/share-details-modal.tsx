@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Card, CardContent } from "@/components/ui/card"
-import { MessageCircle, MessageSquare, Send } from "@/components/ui/iconify-compat"
+import { MessageCircle, Send } from "@/components/ui/iconify-compat"
 import { NIGERIAN_BANKS } from "@/lib/banks-data"
 import { dataStore } from "@/lib/data-store"
 
@@ -32,7 +32,21 @@ export function ShareDetailsModal({ isOpen, onClose, recipientPhone }: ShareDeta
   }
   console.log('ShareDetailsModal cardPreviewData:', cardPreviewData)
 
-  const handleSendViaSMS = async () => {
+  const buildVCard = () =>
+    [
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      `FN:${userData?.name || "Ecobank Customer"}`,
+      `ORG:${selectedBank}`,
+      userData?.email ? `EMAIL:${userData.email}` : "",
+      userData?.phone ? `TEL:${userData.phone}` : "",
+      "NOTE:Business card shared via Ecobank Mobile App",
+      "END:VCARD",
+    ]
+      .filter(Boolean)
+      .join("\n")
+
+  const handleShareBusinessCard = async () => {
     if (!recipientPhoneInput.trim()) {
       setError("Please enter a recipient phone number")
       return
@@ -42,54 +56,40 @@ export function ShareDetailsModal({ isOpen, onClose, recipientPhone }: ShareDeta
     setError(null)
 
     try {
-      console.log('ShareDetailsModal sending SMS with data:', {
-        to: recipientPhoneInput,
-        bank: selectedBank,
-        email: userData?.email || "",
-        phone: userData?.phone || "",
-        mediaUrl: `${window.location.origin}/api/vcard?bank=${encodeURIComponent(selectedBank)}&email=${encodeURIComponent(userData?.email || "")}&phone=${encodeURIComponent(userData?.phone || "")}`,
-      })
+      const vCard = buildVCard()
 
-      const response = await fetch("/api/sms/business-card", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: recipientPhoneInput,
-          bank: selectedBank,
-          email: userData?.email || "",
-          phone: userData?.phone || "",
-          mediaUrl: `${window.location.origin}/api/vcard?bank=${encodeURIComponent(selectedBank)}&email=${encodeURIComponent(userData?.email || "")}&phone=${encodeURIComponent(userData?.phone || "")}`,
-        }),
-      })
-
-      console.log('ShareDetailsModal SMS response status:', response.status)
-      console.log('ShareDetailsModal SMS response:', response)
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to send business card")
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({
+          title: `${selectedBank} Business Card`,
+          text: vCard,
+        })
+      } else if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(vCard)
+      } else {
+        throw new Error("Sharing is not supported on this device")
       }
 
       setSuccess(true)
+      dataStore.addNotification({
+        title: "Business Card Shared",
+        message: `Business card ready to share with ${recipientPhoneInput}`,
+        type: "success",
+      })
       setTimeout(() => {
         onClose()
         setSuccess(false)
         setRecipientPhoneInput("")
       }, 2000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send business card")
+      // A user-cancelled share sheet is not an error
+      if ((err as Error)?.name === "AbortError") return
+      setError(err instanceof Error ? err.message : "Failed to share business card")
     } finally {
       setIsSending(false)
     }
   }
 
   const handleShare = (platform: string) => {
-    if (platform === "sms") {
-      // SMS will be handled by the new logic
-      return
-    }
-
     const shareText = `Bank: ${selectedBank}\nEmail: ${userData?.email || ""}\nPhone: ${userData?.phone || ""}`
     const encodedText = encodeURIComponent(shareText)
 
@@ -163,7 +163,7 @@ export function ShareDetailsModal({ isOpen, onClose, recipientPhone }: ShareDeta
           {/* Success Message */}
           {success && (
             <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-sm">
-              Business card sent successfully!
+              Business card shared successfully!
             </div>
           )}
 
@@ -181,12 +181,12 @@ export function ShareDetailsModal({ isOpen, onClose, recipientPhone }: ShareDeta
             </Button>
 
             <Button
-              onClick={handleSendViaSMS}
+              onClick={handleShareBusinessCard}
               className="w-full bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-3 disabled:opacity-50"
               disabled={isSending || !recipientPhoneInput.trim()}
             >
-              <MessageSquare className="h-5 w-5" />
-              {isSending ? "Sending..." : "Send Business Card via SMS"}
+              <Send className="h-5 w-5" />
+              {isSending ? "Sharing..." : "Share Business Card"}
             </Button>
 
             <Button

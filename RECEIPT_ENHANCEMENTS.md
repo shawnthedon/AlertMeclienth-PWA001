@@ -53,7 +53,6 @@ The transaction receipt system has been completely redesigned with comprehensive
 ✅ **Share Options Available:**
 1. **WhatsApp** - Share via WhatsApp (Green icon)
 2. **Email** - Share via Email client (Blue icon)
-3. **SMS** - Share via Messaging app (Purple icon)
 4. **More Options** - Device native sharing (Gray icon)
 
 ✅ **Additional Features:**
@@ -167,7 +166,6 @@ Total Debited: ₦[Total]
 |---------|--------|------|-------|
 | WhatsApp | ✅ Active | MessageCircle | Green |
 | Email | ✅ Active | Mail | Blue |
-| SMS | ✅ Active | MessageSquare | Purple |
 | Native Share | ✅ Active | Share | Gray |
 
 ---
@@ -180,7 +178,6 @@ Total Debited: ₦[Total]
 3. User selects sharing method:
    - **WhatsApp** → Opens WhatsApp with pre-filled message
    - **Email** → Opens email client with subject and message
-   - **SMS** → Opens SMS app with receipt details
    - **More Options** → Device native share picker
 4. Dialog closes after action
 5. Toast notification confirms action
@@ -209,7 +206,6 @@ Total Debited: ₦[Total]
 ### Browser Compatibility:
 - Modern browsers with Web Share API support
 - Fallback to email for older browsers
-- SMS support on mobile devices
 - Bluetooth on compatible devices
 
 ---
